@@ -144,7 +144,7 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=result_dir)
 
     # - Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu, converter=c))
+    trainer.extend(extensions.Evaluator(test_iter, L.Classifier(model), device=args.gpu, converter=c))
 
     # - Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(log_name="{}log".format(resultname)))
