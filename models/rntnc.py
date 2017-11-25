@@ -32,16 +32,16 @@ class RNTNc(Base):
 
             # Comparison layer
             # - Tensors W
-            self.wc_re = chainer.Parameter(shape=(2 * k, d), initializer=u_initializer)
-            self.wc_im = chainer.Parameter(shape=(2 * k, d), initializer=u_initializer)
+            self.wc_re = chainer.Parameter(shape=(k, d), initializer=u_initializer)
+            self.wc_im = chainer.Parameter(shape=(k, d), initializer=u_initializer)
 
             # - Standard layer V
             del self.Vc
-            self.Vc = L.Linear(in_size=4 * d, out_size=2 * k, initialW=u_initializer)
+            self.Vc = L.Linear(in_size=4 * d, out_size=k, initialW=u_initializer)
 
             # Converter matrix (d -> n_rel)
             del self.C
-            self.C = L.Linear(in_size=2 * k, out_size=n_rel, initialW=u_initializer)
+            self.C = L.Linear(in_size=k, out_size=n_rel, initialW=u_initializer)
 
         # Other parameters
         self.comp = True
@@ -63,19 +63,23 @@ class RNTNc(Base):
         so_vecs_re = F.concat((s_vecs_re, s_vecs_im, o_vecs_re, o_vecs_im), axis=1)
 
         # W
-        tensor_re_t = F.tile(self.w_re, (batch_size, 1, 1))
-        tensor_im_t = F.tile(self.w_im, (batch_size, 1, 1))
 
         # Calculate each term
         # - sWo
-        s_riri = F.stack([s_vecs_re, s_vecs_im, s_vecs_re, s_vecs_im], axis=1)
-        o_riir = F.stack([o_vecs_re, o_vecs_im, o_vecs_im, o_vecs_re], axis=1)
+        s_riri = F.concat([s_vecs_re, s_vecs_im, s_vecs_re, s_vecs_im], axis=1)
+        o_riir = F.concat([o_vecs_re, o_vecs_im, o_vecs_im, o_vecs_re], axis=1)
 
         rr_ii_ri_ir = s_riri * o_riir  # element-wise product of s and o
-        rr_ii_ri_ir_t = F.reshape(F.tile(rr_ii_ri_ir, (1, 2 * self.d, 1)), (batch_size, 2 * self.d, 4, self.d))
+        rr_ii_ri_ir_t = F.tile(rr_ii_ri_ir, (1, 2 * self.d))
 
-        tensor_rrii = F.stack([tensor_re_t, tensor_re_t, tensor_im_t, tensor_im_t], axis=2)
-        sWo_re = F.sum(rr_ii_ri_ir_t * tensor_rrii, axis=(2, 3))
+        tensor_rrii_ = F.reshape(F.concat([self.w_re, self.w_re, self.w_im, self.w_im], axis=1), (1, 4 * self.d * 2 * self.d))
+        tensor_rrii = F.tile(tensor_rrii_, (batch_size, 1))
+        sWo_re_ = F.sum(F.reshape(rr_ii_ri_ir_t * tensor_rrii, (batch_size, 2 * self.d, 4, self.d)), axis=3)
+        rrr = sWo_re_[:, :, 0]
+        rii = sWo_re_[:, :, 1]
+        iri = sWo_re_[:, :, 2]
+        iir = sWo_re_[:, :, 3]
+        sWo_re = rrr + rii + iri - iir
 
         # Sum up terms
         rntn = sWo_re
@@ -101,20 +105,22 @@ class RNTNc(Base):
         # - Concats of subject and object
         so_vecs_re = F.concat((s_vecs_re, s_vecs_im, o_vecs_re, o_vecs_im), axis=1)
 
-        # W
-        tensor_re_t = F.tile(self.wc_re, (batch_size, 1, 1))
-        tensor_im_t = F.tile(self.wc_im, (batch_size, 1, 1))
-
         # Calculate each term
         # - sWo
-        s_riri = F.stack([s_vecs_re, s_vecs_im, s_vecs_re, s_vecs_im], axis=1)
-        o_riir = F.stack([o_vecs_re, o_vecs_im, o_vecs_im, o_vecs_re], axis=1)
+        s_riri = F.concat([s_vecs_re, s_vecs_im, s_vecs_re, s_vecs_im], axis=1)
+        o_riir = F.concat([o_vecs_re, o_vecs_im, o_vecs_im, o_vecs_re], axis=1)
 
         rr_ii_ri_ir = s_riri * o_riir  # element-wise product of s and o
-        rr_ii_ri_ir_t = F.reshape(F.tile(rr_ii_ri_ir, (1, 2 * self.k, 1)), (batch_size, 2 * self.k, 4, self.d))
+        rr_ii_ri_ir_t = F.tile(rr_ii_ri_ir, (1, self.k))
 
-        tensor_rrii = F.stack([tensor_re_t, tensor_re_t, tensor_im_t, tensor_im_t], axis=2)
-        sWo_re = F.sum(rr_ii_ri_ir_t * tensor_rrii, axis=(2, 3))
+        tensor_rrii_ = F.reshape(F.concat([self.wc_re, self.wc_re, self.wc_im, self.wc_im], axis=1), (1, 4 * self.d * self.k))
+        tensor_rrii = F.tile(tensor_rrii_, (batch_size, 1))
+        sWo_re_ = F.sum(F.reshape(rr_ii_ri_ir_t * tensor_rrii, (batch_size, self.k, 4, self.d)), axis=3)
+        rrr = sWo_re_[:, :, 0]
+        rii = sWo_re_[:, :, 1]
+        iri = sWo_re_[:, :, 2]
+        iir = sWo_re_[:, :, 3]
+        sWo_re = rrr + rii + iri - iir
 
         # Sum up terms
         rntn = sWo_re
