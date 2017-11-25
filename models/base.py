@@ -1,3 +1,5 @@
+import numpy as np
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -48,7 +50,7 @@ class Base(chainer.Chain):
         words = batch[batch_size * 3: batch_size * 4]
 
         # -- Sort all arrays in descending order and transpose them
-        inds = self.xp.argsort([-len(l) for l in lefts])
+        inds = np.argsort([-len(l) for l in lefts])
         root_inds = [len(words[i]) * 2 - 2 for i in inds]
         inds_reverse = [0] * batch_size
         for i, ind in enumerate(inds):
