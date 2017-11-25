@@ -18,6 +18,11 @@ from models.rnn import RNN
 from models.rntn import RNTN
 from models.rntnd import RNTNd
 from models.rntnc import RNTNc
+from models.rnnr import RNNr
+from models.rntnr import RNTNr
+from models.rntnrd import RNTNrd
+from models.rntnrc import RNTNrc
+from models.rntnrs import RNTNrs
 
 
 def main():
@@ -117,16 +122,19 @@ def main():
         params = {'n_embed': args.n_var * 2, 'd': args.dimension, 'k': args.output_vector}
         if args.model == 'rn':
             result_dir = 'result_rnnr'
-            model = RNN(**params)
+            model = RNNr(**params)
         elif args.model == 'rt':
             result_dir = 'result_rntnr'
-            model = RNTN(**params)
+            model = RNTNr(**params)
         elif args.model == 'rd':
             result_dir = 'result_rntnrd'
-            model = RNTNd(**params)
-        elif args.model == 'c':
+            model = RNTNrd(**params)
+        elif args.model == 'rc':
             result_dir = 'result_rntnrc'
-            model = RNTNc(**params)
+            model = RNTNrc(**params)
+        elif args.model == 'rs':
+            result_dir = 'result_rntnrs'
+            model = RNTNrc(**params)
 
     if args.gpu >= 0:
         model.to_gpu()

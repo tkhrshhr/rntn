@@ -145,8 +145,6 @@ def linearize_tree_relational(root, xp=np, n_var=6):
                 return node_index - 1
 
     traverse_node(root)
-    print(words)
-    print(lefts)
     assert len(lefts) == len(words) - 1
     """
     print("lefts : ", lefts)
