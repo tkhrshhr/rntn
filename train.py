@@ -7,6 +7,9 @@ from chainer import training
 from chainer.training import extensions
 from chainer import links as L
 
+import matplotlib as mpl
+mpl.use('Agg')
+
 import reader
 import linearizer
 import converter

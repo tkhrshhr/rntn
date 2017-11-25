@@ -2,3 +2,4 @@ result_*/
 __pycache__/
 models/__pycache__/
 trained_model/
+log/
