@@ -39,6 +39,12 @@ def main():
     parser.add_argument('--model', '-m', type=str, default='n',
                         help='Model to train')
 
+    parser.add_argument('--p_dim', '-p', type=int, default=1,
+                        help='Dimension p')
+
+    parser.add_argument('--q_dim', '-q', type=int, default=1,
+                        help='Dimension q')
+
     parser.add_argument('--epoch', '-e', default=100, type=int,
                         help='number of epochs to learn')
 
@@ -60,7 +66,7 @@ def main():
     parser.add_argument('--nmodifier', '-n', default='',
                         help='Result name modifier')
 
-    parser.add_argument('--epocheval', '-p', type=int, default=2,
+    parser.add_argument('--epocheval', '-v', type=int, default=2,
                         help='number of epochs per evaluation')
 
     parser.add_argument('--test', dest='test', action='store_true')
@@ -134,7 +140,7 @@ def main():
             model = RNTNrc(**params)
         elif args.model == 'rs':
             result_dir = 'result_rntnrs'
-            model = RNTNrc(**params)
+            model = RNTNrs(**params, p=args.p_dim, q=args.q_dim)
 
     if args.gpu >= 0:
         model.to_gpu()
