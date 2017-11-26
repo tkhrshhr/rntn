@@ -140,6 +140,7 @@ def main():
             model = RNTNrc(**params)
         elif args.model == 'rs':
             result_dir = 'result_rntnrs'
+            resultname += 'p{}q{}'.format(args.p_dim, args.q_dim)
             model = RNTNrs(**params, p=args.p_dim, q=args.q_dim)
 
     if args.gpu >= 0:
