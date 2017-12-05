@@ -102,11 +102,11 @@ def main():
     train_iter = chainer.iterators.SerialIterator(train_datasets, args.batchsize)
 
     # -- Test
-    test_s, test_o, test_r = test
-    test_s_ld = [l(t, xp) for t in test_s]
-    test_o_ld = [l(t, xp) for t in test_o]
-    test_datasets = chainer.datasets.TupleDataset(test_s_ld, test_o_ld, test_r)
-    test_iter = chainer.iterators.SerialIterator(test_datasets, args.batchsize, repeat=False, shuffle=False)
+    dev_s, dev_o, dev_r = dev
+    dev_s_ld = [l(t, xp) for t in dev_s]
+    dev_o_ld = [l(t, xp) for t in dev_o]
+    dev_datasets = chainer.datasets.TupleDataset(dev_s_ld, dev_o_ld, dev_r)
+    dev_iter = chainer.iterators.SerialIterator(dev_datasets, args.batchsize, repeat=False, shuffle=False)
 
     # Model setup
     if args.relational == 0:
@@ -162,7 +162,7 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=result_dir)
 
     # - Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, L.Classifier(model), device=args.gpu, converter=c))
+    trainer.extend(extensions.Evaluator(dev_iter, L.Classifier(model), device=args.gpu, converter=c))
 
     # - Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(log_name="{}log".format(resultname)))
@@ -184,7 +184,19 @@ def main():
     trainer.run()
 
     # - Save model
-    chainer.serializers.save_hdf5("trained_model/{}_{}".format(args.model, resultname), model)
+    model_name = 'r{}-{}-x{}-y{}-d{}-k{}-w{:.10f}-b{}-e{}-p{}-q{}'.format(args.relational,
+                                                                          args.model,
+                                                                          args.n_var,
+                                                                          args.max_n_var,
+                                                                          args.dimension,
+                                                                          args.output_vector,
+                                                                          args.weightdecay,
+                                                                          args.batchsize,
+                                                                          args.epoch,
+                                                                          args.p_dim,
+                                                                          args.q_dim)
+
+    chainer.serializers.save_hdf5("trained_model/{}".format(model_name), model)
 
 
 if __name__ == '__main__':

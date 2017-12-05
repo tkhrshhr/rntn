@@ -3,7 +3,7 @@ import numpy as np
 from chainer import cuda
 
 
-def convert(batch, device):
+def convert(batch, device=None):
     if device is None:
         def to_device(x):
             return x
@@ -41,7 +41,7 @@ def convert(batch, device):
                  to_device(np.array(r_li, dtype=np.int32))])
 
 
-def convert_relational(batch, device):
+def convert_relational(batch, device=None):
     if device is None:
         def to_device(x):
             return x

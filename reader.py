@@ -76,7 +76,10 @@ def read(n_var=6, max_n_var=4):
     # Dev
     dev = read_each_data('dev', 0, 5)
     # Test
-    test = read_each_data('test', 12, 13)
+    test = []
+    for i in range(13):
+        bin = read_each_data('test', i, i + 1)
+        test.append(bin)
 
     return train, dev, test
 
