@@ -135,9 +135,9 @@ def main():
 
     # Test
     logger.info('---test---')
-    for i, a_bin in enumerate(test):
+    for i, a_bin in enumerate(test[1:]):
         accuracy = get_accuracy(model, a_bin)
-        logger.info('test {} : {}'.format(i, accuracy))
+        logger.info('test {} : {}'.format(i + 1, accuracy))
 
 
 if __name__ == '__main__':
