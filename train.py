@@ -1,6 +1,7 @@
 import numpy
 import argparse
 import datetime
+import os
 import chainer
 from chainer import cuda
 from chainer import training
@@ -195,8 +196,10 @@ def main():
                                                                           args.epoch,
                                                                           args.p_dim,
                                                                           args.q_dim)
-
-    chainer.serializers.save_hdf5("trained_model/{}".format(model_name), model)
+    model_path = "trained_model_{}-{}".format(month, day)
+    if not os.path.exists(model_path):
+        os.mkdir(model_path)
+    chainer.serializers.save_hdf5("{}/{}".format(model_path, model_name), model)
 
 
 if __name__ == '__main__':
