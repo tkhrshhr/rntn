@@ -48,7 +48,7 @@ def main():
     parser.add_argument('--epoch', '-e', default=100, type=int,
                         help='number of epochs to learn')
 
-    parser.add_argument('--dimension', '-d', type=int, default=35,
+    parser.add_argument('--dimension', '-d', type=int, default=25,
                         help='Dimension of embeddings')
 
     parser.add_argument('--output_vector', '-k', type=int, default=75,

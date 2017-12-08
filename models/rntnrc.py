@@ -41,10 +41,6 @@ class RNTNrc(Baser):
             del self.Vc
             self.Vc = L.Linear(in_size=4 * d, out_size=k, initialW=u_initializer)
 
-            # Converter matrix (d -> n_rel)
-            del self.C
-            self.C = L.Linear(in_size=k, out_size=n_rel, initialW=u_initializer)
-
         # Other parameters
         self.comp = True
 
@@ -57,15 +53,15 @@ class RNTNrc(Baser):
         batch_size = len(left)
 
         # Get vectors of subjects and objects
-        s_vecs_re, s_vecs_im = F.split_axis(left, 2, axis=1)
-        o_vecs_re, o_vecs_im = F.split_axis(right, 2, axis=1)
+        s_re, s_im = F.split_axis(left, 2, axis=1)
+        o_re, o_im = F.split_axis(right, 2, axis=1)
 
         # Concats of subject and object
-        so_vecs_re = F.concat((s_vecs_re, s_vecs_im, o_vecs_re, o_vecs_im), axis=1)
+        so = F.concat((s_re, s_im, o_re, o_im), axis=1)
 
         # Wr
-        tensor_re = self.w_re[ope]
-        tensor_im = self.w_im[ope]
+        w_re = self.w_re[ope]
+        w_im = self.w_im[ope]
 
         # Vr, br
         Vr = self.V[ope]
@@ -73,25 +69,21 @@ class RNTNrc(Baser):
 
         # Calculate each term
         # - sWo
-        s_riri = F.concat([s_vecs_re, s_vecs_im, s_vecs_re, s_vecs_im], axis=1)
-        o_riir = F.concat([o_vecs_re, o_vecs_im, o_vecs_im, o_vecs_re], axis=1)
+        s_riri = F.stack([s_re, s_im, s_re, s_im], axis=0)
+        o_riir = F.stack([o_re, o_im, o_im, o_re], axis=0)
 
-        rr_ii_ri_ir = s_riri * o_riir  # element-wise product of s and o
-        rr_ii_ri_ir_t = F.tile(rr_ii_ri_ir, (1, 2 * self.d))
+        s_dot_o = s_riri * o_riir  # element-wise product of s and o
+        s_dot_o_t_ = F.tile(s_dot_o, (1, 1, 2 * self.d))
+        s_dot_o_t = F.reshape(s_dot_o_t_, (4, batch_size, 2 * self.d, self.d))
 
-        tensor_rrii_ = F.concat([tensor_re, tensor_re, tensor_im, tensor_im], axis=2)
-        tensor_rrii = F.reshape(tensor_rrii_, (batch_size, 4 * self.d * 2 * self.d))
+        w_rrii = F.stack([w_re, w_re, w_im, w_im], axis=0)
 
-        sWo_re_ = F.sum(F.reshape(rr_ii_ri_ir_t * tensor_rrii, (batch_size, 2 * self.d, 4, self.d)), axis=3)
-        rrr = sWo_re_[:, :, 0]
-        rii = sWo_re_[:, :, 1]
-        iri = sWo_re_[:, :, 2]
-        iir = sWo_re_[:, :, 3]
-        sWo_re = rrr + rii + iri - iir
+        sWo_ = F.sum(s_dot_o_t * w_rrii, axis=3)
+        sWo = sWo_[0] + sWo_[1] + sWo_[2] - sWo_[3]
 
         # Sum up terms
-        rntn = sWo_re
-        rnn = F.reshape(F.batch_matmul(Vr, so_vecs_re), (len(left), 2 * self.d)) + br
+        rntn = sWo
+        rnn = F.reshape(F.batch_matmul(Vr, so), (batch_size, 2 * self.d)) + br
 
         composed_re = F.tanh(rntn + rnn)
 
@@ -106,32 +98,32 @@ class RNTNrc(Baser):
         batch_size = len(s)
 
         # Get vectors of subjects and objects
-        s_vecs_re, s_vecs_im = F.split_axis(s, 2, axis=1)
-        o_vecs_re, o_vecs_im = F.split_axis(o, 2, axis=1)
+        s_re, s_im = F.split_axis(s, 2, axis=1)
+        o_re, o_im = F.split_axis(o, 2, axis=1)
+
+        wc_re = F.tile(self.wc_re, (batch_size, 1, 1))
+        wc_im = F.tile(self.wc_im, (batch_size, 1, 1))
 
         # Repeat each subject and object vectors slice size times
         # - Concats of subject and object
-        so_vecs_re = F.concat((s_vecs_re, s_vecs_im, o_vecs_re, o_vecs_im), axis=1)
+        so = F.concat((s_re, s_im, o_re, o_im), axis=1)
 
         # Calculate each term
         # - sWo
-        s_riri = F.concat([s_vecs_re, s_vecs_im, s_vecs_re, s_vecs_im], axis=1)
-        o_riir = F.concat([o_vecs_re, o_vecs_im, o_vecs_im, o_vecs_re], axis=1)
+        s_riri = F.stack([s_re, s_im, s_re, s_im], axis=0)
+        o_riir = F.stack([s_re, o_im, o_im, o_re], axis=0)
 
-        rr_ii_ri_ir = s_riri * o_riir  # element-wise product of s and o
-        rr_ii_ri_ir_t = F.tile(rr_ii_ri_ir, (1, self.k))
+        s_dot_o = s_riri * o_riir  # element-wise product of s and o
+        s_dot_o_t_ = F.tile(s_dot_o, (1, 1, self.k))
+        s_dot_o_t = F.reshape(s_dot_o_t_, (4, batch_size, self.k, self.d))
 
-        tensor_rrii_ = F.reshape(F.concat([self.wc_re, self.wc_re, self.wc_im, self.wc_im], axis=1), (1, 4 * self.d * self.k))
-        tensor_rrii = F.tile(tensor_rrii_, (batch_size, 1))
-        sWo_re_ = F.sum(F.reshape(rr_ii_ri_ir_t * tensor_rrii, (batch_size, self.k, 4, self.d)), axis=3)
-        rrr = sWo_re_[:, :, 0]
-        rii = sWo_re_[:, :, 1]
-        iri = sWo_re_[:, :, 2]
-        iir = sWo_re_[:, :, 3]
-        sWo_re = rrr + rii + iri - iir
+        w_rrii = F.stack([wc_re, wc_re, wc_im, wc_im], axis=0)
 
-        rntn = sWo_re
-        rnn = self.Vc(so_vecs_re)
+        sWo_ = F.sum(s_dot_o_t * w_rrii, axis=3)
+        sWo = sWo_[0] + sWo_[1] + sWo_[2] - sWo_[3]
+
+        rntn = sWo
+        rnn = self.Vc(so)
 
         compared = F.tanh(rntn + rnn)
 
