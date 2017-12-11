@@ -79,7 +79,7 @@ def main():
     today = datetime.date.today()
     month = today.month
     day = today.day
-    resultname = "{}{}{}-b{}d{}w{}".format(month, day, args.nmodifier, args.batchsize, args.dimension, args.weightdecay)
+    resultname = "{}{}-{}-b{}d{}w{}".format(month, day, args.trial_index, args.batchsize, args.dimension, args.weightdecay)
 
     # Data setup
     train, dev, test = reader.read(args.n_var, args.max_n_var)
