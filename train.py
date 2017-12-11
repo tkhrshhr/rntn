@@ -64,8 +64,8 @@ def main():
     parser.add_argument('--gpu', '-g', default=-1, type=int,
                         help='GPU ID (negative value indicates CPU)')
 
-    parser.add_argument('--nmodifier', '-n', default='',
-                        help='Result name modifier')
+    parser.add_argument('--trial_index', '-i', default='',
+                        help='Trial index')
 
     parser.add_argument('--epocheval', '-v', type=int, default=2,
                         help='number of epochs per evaluation')
@@ -185,17 +185,18 @@ def main():
     trainer.run()
 
     # - Save model
-    model_name = 'r{}-{}-x{}-y{}-d{}-k{}-w{:.10f}-b{}-e{}-p{}-q{}'.format(args.relational,
-                                                                          args.model,
-                                                                          args.n_var,
-                                                                          args.max_n_var,
-                                                                          args.dimension,
-                                                                          args.output_vector,
-                                                                          args.weightdecay,
-                                                                          args.batchsize,
-                                                                          args.epoch,
-                                                                          args.p_dim,
-                                                                          args.q_dim)
+    model_name = 'r{}-{}-x{}-y{}-d{}-k{}-w{:.10f}-b{}-e{}-p{}-q{}-i{}'.format(args.relational,
+                                                                              args.model,
+                                                                              args.n_var,
+                                                                              args.max_n_var,
+                                                                              args.dimension,
+                                                                              args.output_vector,
+                                                                              args.weightdecay,
+                                                                              args.batchsize,
+                                                                              args.epoch,
+                                                                              args.p_dim,
+                                                                              args.q_dim,
+                                                                              args.trial_index)
     model_path = "trained_model_{}-{}".format(month, day)
     if not os.path.exists(model_path):
         os.mkdir(model_path)
