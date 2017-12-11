@@ -124,7 +124,7 @@ def main():
             model = RNTNrs(**params, p=hp_dict['p'], q=hp_dict['q'])
 
     print(args.save)
-    serializers.load_hdf5("trained_model/" + args.save, model)
+    serializers.load_hdf5("trained_model_12-9/" + args.save, model)
     model = L.Classifier(model)
     model.to_cpu()
 

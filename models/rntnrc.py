@@ -15,12 +15,12 @@ class RNTNrc(Baser):
         Baser.__init__(self, n_embed, n_rel, d, k)
         with self.init_scope():
             # Set initializer
-            u_initializer = chainer.initializers.Uniform(dtype=self.xp.float32)
-            initial_embed = self.xp.random.uniform(-0.01, 0.01, (n_embed, 2 * d))
+            u_initializer = chainer.initializers.Uniform(scale=0.05, dtype=self.xp.float32)
+            u_initializer_embed = chainer.initializers.Uniform(scale=0.01, dtype=self.xp.float32)
 
             # Entity vectors
             del self.embed
-            self.embed = L.EmbedID(n_embed, 2 * d, initialW=initial_embed)
+            self.embed = L.EmbedID(n_embed, 2 * d, initialW=u_initializer_embed)
 
             # RNTN layer
             # - Tensors W
@@ -111,7 +111,7 @@ class RNTNrc(Baser):
         # Calculate each term
         # - sWo
         s_riri = F.stack([s_re, s_im, s_re, s_im], axis=0)
-        o_riir = F.stack([s_re, o_im, o_im, o_re], axis=0)
+        o_riir = F.stack([o_re, o_im, o_im, o_re], axis=0)
 
         s_dot_o = s_riri * o_riir  # element-wise product of s and o
         s_dot_o_t_ = F.tile(s_dot_o, (1, 1, self.k))
