@@ -85,7 +85,7 @@ def main():
     args = parser.parse_args()
     """
     # Parse save file name
-    path = './trained_model_12-12'
+    path = './trained_model_12-11'
     saves = os.listdir(path)
     for save in saves:
         # Prepare logger
