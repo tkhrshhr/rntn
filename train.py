@@ -64,7 +64,7 @@ def main():
     parser.add_argument('--gpu', '-g', default=-1, type=int,
                         help='GPU ID (negative value indicates CPU)')
 
-    parser.add_argument('--trial_index', '-i', default='',
+    parser.add_argument('--trial_index', '-i', type=int, default=0,
                         help='Trial index')
 
     parser.add_argument('--epocheval', '-v', type=int, default=2,
