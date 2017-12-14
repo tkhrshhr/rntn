@@ -1,4 +1,4 @@
-for d in 25 50 75 100 150 200; do
+for d in 25 50 75; do
   echo $d
   for m in rn rt rd rc; do
     echo $m
