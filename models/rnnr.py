@@ -28,11 +28,9 @@ class RNNr(Baser):
         Receive: batch
         Return: self.k dimenstion's vectors
         """
-        # Concats of subject and object
-        so_vecs = F.concat((s, o), axis=1)
 
         # Calculate
-        preact = self.Vc(so_vecs)
+        preact = self._affinec(s, o)
         compared = F.tanh(preact)
 
         return compared

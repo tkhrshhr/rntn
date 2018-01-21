@@ -10,7 +10,7 @@ logging.basicConfig(format='%(asctime)s : %(threadName)s : %(levelname)s : %(mes
 
 
 class RNTNr(Baser):
-    def __init__(self, n_embed=12, n_rel=7, d=25, k=75, n_ope=2):
+    def __init__(self, n_embed=12, n_rel=7, d=25, k=75, n_ope=2, mp=1):
         Baser.__init__(self, n_embed, n_rel, d, k)
         with self.init_scope():
             # Set initializer
@@ -24,6 +24,8 @@ class RNTNr(Baser):
             # - Tensors W
             self.Wc = chainer.Parameter(shape=(k, d, d), initializer=u_initializer)
 
+        self.mp = mp
+
     def _node(self, left, right, ope):
         """
         Recieve left and right vectors
@@ -32,30 +34,25 @@ class RNTNr(Baser):
         # Get batch size
         batch_size = len(left)
 
-        # Get vectors of subjects and objects
-        s_vecs = left
-        o_vecs = right
-
         # W
         tensor_t = self.W[ope]
 
         # Calculate each term
         # -sWo
-        s_vecs_ = F.reshape(s_vecs, (batch_size, 1, self.d))
+        s_vecs_ = F.reshape(left, (batch_size, 1, self.d))
         s_vecs__ = F.broadcast_to(s_vecs_, ((batch_size, self.d, self.d)))
-        o_vecs_ = F.reshape(o_vecs, (batch_size, self.d, 1))
+        o_vecs_ = F.reshape(right, (batch_size, self.d, 1))
         o_vecs__ = F.broadcast_to(o_vecs_, ((batch_size, self.d, self.d)))
 
         so_elp = s_vecs__ * o_vecs__  # element-wise product of s and o
         so_elp_t = F.reshape(F.tile(so_elp, (1, 1, self.d)), (batch_size, self.d, self.d, self.d))
 
         sWo = F.sum(tensor_t * so_elp_t, (2, 3))
+        affine = self._affine(left, right, ope, mp=self.mp)
+        preact = sWo + affine
 
         # Activation
-        rntn = sWo
-        rnn = self._affine(left, right, ope)
-
-        composed = F.tanh(rntn + rnn)
+        composed = F.tanh(preact)
 
         return composed
 
@@ -67,33 +64,23 @@ class RNTNr(Baser):
         # Store batch size
         batch_size = len(s)
 
-        # Get vectors of subjects and objects
-        s_vecs = s
-        o_vecs = o
-
-        # Repeat each subject and object vectors slice size times
-        # - Concats of subject and object
-        so_vecs = F.concat((s_vecs, o_vecs), axis=1)
-
         # W
         tensor_t = F.tile(self.Wc, (batch_size, 1, 1, 1))
 
         # Calculate each term
         # -sWo
-        s_vecs_ = F.reshape(s_vecs, (batch_size, 1, self.d))
+        s_vecs_ = F.reshape(s, (batch_size, 1, self.d))
         s_vecs__ = F.broadcast_to(s_vecs_, ((batch_size, self.d, self.d)))
-        o_vecs_ = F.reshape(o_vecs, (batch_size, self.d, 1))
+        o_vecs_ = F.reshape(o, (batch_size, self.d, 1))
         o_vecs__ = F.broadcast_to(o_vecs_, ((batch_size, self.d, self.d)))
 
         so_elp = s_vecs__ * o_vecs__  # element-wise product of s and o
         so_elp_t = F.reshape(F.tile(so_elp, (1, 1, self.k)), (batch_size, self.k, self.d, self.d))
 
         sWo = F.sum(tensor_t * so_elp_t, (2, 3))
+        affine = self._affinec(s, o, mp=self.mp)
+        preact = sWo + affine
 
-        # Activation
-        rntn = sWo
-        rnn = self.Vc(so_vecs)
-
-        compared = F.tanh(rntn + rnn)
+        compared = F.tanh(preact)
 
         return compared

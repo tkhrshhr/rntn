@@ -40,6 +40,9 @@ def main():
     parser.add_argument('--model', '-m', type=str, default='n',
                         help='Model to train')
 
+    parser.add_argument('--matpro', '-v', type=int, default=1,
+                        help='if matrix product is in the model')
+
     parser.add_argument('--p_dim', '-p', type=int, default=1,
                         help='Dimension p')
 
@@ -66,9 +69,6 @@ def main():
 
     parser.add_argument('--trial_index', '-i', type=int, default=0,
                         help='Trial index')
-
-    parser.add_argument('--epocheval', '-v', type=int, default=2,
-                        help='number of epochs per evaluation')
 
     parser.add_argument('--test', dest='test', action='store_true')
 
@@ -131,13 +131,25 @@ def main():
             result_dir = 'result_rnnr'
             model = RNNr(**params)
         elif args.model == 'rt':
-            result_dir = 'result_rntnr'
+            if args.matpro == 1:
+                result_dir = 'result_rntnr'
+            elif args.matpro == 0:
+                result_dir = 'result_rntnr_t'
+            params['mp'] = args.matpro
             model = RNTNr(**params)
         elif args.model == 'rd':
-            result_dir = 'result_rntnrd'
+            if args.matpro == 1:
+                result_dir = 'result_rntnrd'
+            elif args.matpro == 0:
+                result_dir = 'result_rntnrd_t'
+            params['mp'] = args.matpro
             model = RNTNrd(**params)
         elif args.model == 'rc':
-            result_dir = 'result_rntnrc'
+            if args.matpro == 1:
+                result_dir = 'result_rntnrc'
+            elif args.matpro == 0:
+                result_dir = 'result_rntnrc_t'
+            params['mp'] = args.matpro
             model = RNTNrc(**params)
         elif args.model == 'rs':
             result_dir = 'result_rntnrs'
@@ -185,18 +197,19 @@ def main():
     trainer.run()
 
     # - Save model
-    model_name = 'r{}-{}-x{}-y{}-d{}-k{}-w{:.10f}-b{}-e{}-p{}-q{}-i{}'.format(args.relational,
-                                                                              args.model,
-                                                                              args.n_var,
-                                                                              args.max_n_var,
-                                                                              args.dimension,
-                                                                              args.output_vector,
-                                                                              args.weightdecay,
-                                                                              args.batchsize,
-                                                                              args.epoch,
-                                                                              args.p_dim,
-                                                                              args.q_dim,
-                                                                              args.trial_index)
+    model_name = 'r{}-{}-v{}-x{}-y{}-d{}-k{}-w{:.10f}-b{}-e{}-p{}-q{}-i{}'.format(args.relational,
+                                                                                  args.model,
+                                                                                  args.matpro,
+                                                                                  args.n_var,
+                                                                                  args.max_n_var,
+                                                                                  args.dimension,
+                                                                                  args.output_vector,
+                                                                                  args.weightdecay,
+                                                                                  args.batchsize,
+                                                                                  args.epoch,
+                                                                                  args.p_dim,
+                                                                                  args.q_dim,
+                                                                                  args.trial_index)
     model_path = "trained_model_{}-{}".format(month, day)
     if not os.path.exists(model_path):
         os.mkdir(model_path)

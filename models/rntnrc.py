@@ -11,7 +11,7 @@ logging.basicConfig(format='%(asctime)s : %(threadName)s : %(levelname)s : %(mes
 
 
 class RNTNrc(Baser):
-    def __init__(self, n_embed=12, n_rel=7, d=25, k=75, n_ope=2):
+    def __init__(self, n_embed=12, n_rel=7, d=25, k=75, n_ope=2, mp=1):
         Baser.__init__(self, n_embed, n_rel, d, k)
         with self.init_scope():
             # Set initializer
@@ -39,10 +39,26 @@ class RNTNrc(Baser):
 
             # - Standard layer V
             del self.Vc
-            self.Vc = L.Linear(in_size=4 * d, out_size=k, initialW=u_initializer)
+            self.Vc = chainer.Parameter(shape=(k, 4 * d), initializer=u_initializer)
 
         # Other parameters
         self.comp = True
+        self.mp = mp
+
+    def _affine(self, so, ope, mp=1):
+        # Calculate each term
+        Vr = self.V[ope]
+        matpro = F.reshape(F.batch_matmul(Vr, so), (len(so), 2 * self.d))
+
+        br = self.b[ope]
+
+        # Calculate
+        if mp == 1:
+            affine = matpro + br
+        elif mp == 0:
+            affine = br
+
+        return affine
 
     def _node(self, left, right, ope):
         """
@@ -63,10 +79,6 @@ class RNTNrc(Baser):
         w_re = self.w_re[ope]
         w_im = self.w_im[ope]
 
-        # Vr, br
-        Vr = self.V[ope]
-        br = self.b[ope]
-
         # Calculate each term
         # - sWo
         s_riri = F.stack([s_re, s_im, s_re, s_im], axis=0)
@@ -80,14 +92,24 @@ class RNTNrc(Baser):
 
         sWo_ = F.sum(s_dot_o_t * w_rrii, axis=3)
         sWo = sWo_[0] + sWo_[1] + sWo_[2] - sWo_[3]
+        affine = self._affine(so, ope, mp=self.mp)
+        preact = sWo + affine
 
-        # Sum up terms
-        rntn = sWo
-        rnn = F.reshape(F.batch_matmul(Vr, so), (batch_size, 2 * self.d)) + br
+        composed = F.tanh(preact)
 
-        composed_re = F.tanh(rntn + rnn)
+        return composed
 
-        return composed_re
+    def _affinec(self, so, mp=1):
+        # Calculate each term
+        matpro = F.matmul(so, self.Vc, transb=True)
+        bias = F.broadcast_to(self.bc, shape=(len(so), self.k))
+
+        if mp == 1:
+            affine = matpro + bias
+        elif mp == 0:
+            affine = bias
+
+        return matpro + affine
 
     def _compare(self, s, o):
         """
@@ -121,10 +143,9 @@ class RNTNrc(Baser):
 
         sWo_ = F.sum(s_dot_o_t * w_rrii, axis=3)
         sWo = sWo_[0] + sWo_[1] + sWo_[2] - sWo_[3]
+        affine = self._affinec(so, mp=self.mp)
+        preact = sWo + affine
 
-        rntn = sWo
-        rnn = self.Vc(so)
-
-        compared = F.tanh(rntn + rnn)
+        compared = F.tanh(preact)
 
         return compared

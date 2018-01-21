@@ -23,7 +23,8 @@ class Baser(chainer.Chain):
             self.b = chainer.Parameter(shape=(n_ope, d), initializer=u_initializer)
 
             # Comparison layer
-            self.Vc = L.Linear(in_size=2 * d, out_size=k, initialW=u_initializer)
+            self.Vc = chainer.Parameter(shape=(k, 2 * d), initializer=u_initializer)
+            self.bc = chainer.Parameter(shape=(k,), initializer=u_initializer)
 
             # Converter matrix (d -> n_rel)
             self.C = L.Linear(in_size=k, out_size=n_rel, initialW=u_initializer)
@@ -39,17 +40,23 @@ class Baser(chainer.Chain):
     def _leaf(self, x):
         return self.embed(x)
 
-    def _affine(self, left, right, ope):
+    def _affine(self, left, right, ope, mp=1):
         # Concats of subject and object
         so_vecs = F.concat((left, right), axis=1)
 
-        # Prepare paramters
+        # Calculate each term
         Vr = self.V[ope]
+        matpro = F.reshape(F.batch_matmul(Vr, so_vecs), (len(left), self.d))
+
         br = self.b[ope]
 
         # Calculate
-        rnn = F.reshape(F.batch_matmul(Vr, so_vecs), (len(left), self.d)) + br
-        return rnn
+        if mp == 1:
+            affine = matpro + br
+        elif mp == 0:
+            affine = br
+
+        return affine
 
     def _node(self, left, right, ope):
         raise NotImplementedError
@@ -102,6 +109,21 @@ class Baser(chainer.Chain):
         lasts = F.concat([F.expand_dims(lasts_[i], axis=0) for i in inds_reverse], axis=0)
 
         return lasts
+
+    def _affinec(self, s, o, mp=1):
+        # Concats of subject and object
+        so = F.concat((s, o), axis=1)
+
+        # Calculate each term
+        matpro = F.matmul(so, self.Vc, transb=True)
+        bias = F.broadcast_to(self.bc, shape=(len(s), self.k))
+
+        if mp == 1:
+            affine = matpro + bias
+        elif mp == 0:
+            affine = bias
+
+        return matpro + affine
 
     def _compare(self, s, o):
         raise NotImplementedError
